@@ -18,6 +18,7 @@ Overall we have some rotating grass going on and that's it. ![grass](image.png)
 
 ## Building
 This generally should compile both normally and for wasm, but i only tested compiling it for web.
+Youll also need `rustc 1.95.0`
 ```bash
 
 cargo install wasm-pack # install wasm-pack using cargo. This also can be done with package manager/installation script.
