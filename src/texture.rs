@@ -1,25 +1,13 @@
 use anyhow::*;
 use image::GenericImageView;
+
 pub struct Texture {
     #[allow(unused)]
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,
     pub sampler: wgpu::Sampler,
 }
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum CompareFunction {
-    Undefined = 0,
-    Never = 1,
-    Less = 2,
-    Equal = 3,
-    LessEqual = 4,
-    Greater = 5,
-    NotEqual = 6,
-    GreaterEqual = 7,
-    Always = 8,
-}
+
 impl Texture {
     pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
@@ -41,7 +29,7 @@ impl Texture {
             dimension: wgpu::TextureDimension::D2,
             format: Self::DEPTH_FORMAT,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
+            view_formats: &[Self::DEPTH_FORMAT],
         };
         let texture = device.create_texture(&desc);
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -57,12 +45,15 @@ impl Texture {
             lod_max_clamp: 100.0,
             ..Default::default()
         });
+
         Self {
             texture,
             view,
             sampler,
         }
     }
+
+    #[allow(dead_code)]
     pub fn from_bytes(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -87,13 +78,14 @@ impl Texture {
             height: dimensions.1,
             depth_or_array_layers: 1,
         };
+        let format = wgpu::TextureFormat::Rgba8UnormSrgb;
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label,
             size,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
