@@ -190,9 +190,29 @@ impl CameraController {
         if self.is_left_pressed {
             camera.eye = camera.target - (forward - right * self.speed).normalize() * forward_mag;
         }
-        if !self.is_left_pressed && !self.is_right_pressed {
-            camera.eye = camera.target - (forward + right * self.speed).normalize() * forward_mag;
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct ModelUniform {
+    model: [[f32; 4]; 4],
+}
+struct CameraStaging {
+    camera: Camera,
+    rotation: cgmath::Deg<f32>,
+}
+impl CameraStaging {
+    fn new(camera: Camera) -> Self {
+        Self {
+            camera,
+            rotation: cgmath::Deg(0.0),
         }
+    }
+    fn update_camera(&self, camera_uniform: &mut CameraUniform) {
+        camera_uniform.view_proj = (OPENGL_TO_WGPU_MATRIX
+            * self.camera.build_view_projection_matrix()
+            * cgmath::Matrix4::from_angle_x(self.rotation))
+        .into();
     }
 }
 
@@ -207,11 +227,11 @@ pub struct State {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     num_indices: u32,
-    camera: Camera,
     camera_controller: CameraController,
     camera_uniform: CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
+    camera_staging: CameraStaging,
     diffuse_bind_group: wgpu::BindGroup,
     diffuse_texture: texture::Texture,
     defuse_bind_group: wgpu::BindGroup,
@@ -374,6 +394,8 @@ impl State {
                 },
             ],
         });
+        let camera_staging = CameraStaging::new(camera);
+        camera_staging.update_camera(&mut camera_uniform);
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
         let render_pipeline_layout =
@@ -449,11 +471,11 @@ impl State {
             vertex_buffer,
             index_buffer,
             num_indices,
-            camera,
             camera_controller,
             camera_uniform,
             camera_buffer,
             camera_bind_group,
+            camera_staging,
             diffuse_bind_group,
             diffuse_texture,
             defuse_bind_group,
@@ -486,8 +508,10 @@ impl State {
     //        self.color.b = position.y / (self.config.height as f64);
     //    }
     fn update(&mut self) {
-        self.camera_controller.update_camera(&mut self.camera); // staging buffer instead maybe
-        self.camera_uniform.update_view_proj(&self.camera);
+        self.camera_controller
+            .update_camera(&mut self.camera_staging.camera); // staging buffer instead maybe
+        self.camera_staging.rotation += cgmath::Deg(2.0);
+        self.camera_staging.update_camera(&mut self.camera_uniform);
         self.queue.write_buffer(
             &self.camera_buffer,
             0,
