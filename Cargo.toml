@@ -8,6 +8,9 @@ edition = "2018"
 [profile.release]
 strip = true
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 anyhow = "1.0"
 winit = { version = "0.30", features = ["android-native-activity"] }
@@ -16,10 +19,13 @@ log = "0.4"
 wgpu = "30.0"
 pollster = "0.3"
 bytemuck = { version = "1.24", features = [ "derive" ] }
+cgmath = "0.18"
 
 
-[lib]
-crate-type = ["cdylib", "rlib"]
+[dependencies.image]
+version = "0.24"
+default-features = false
+features = ["png", "jpeg"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.6"
